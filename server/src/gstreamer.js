@@ -1,3 +1,55 @@
+// import Fastify from 'fastify';
+// import FastifyMultipart from '@fastify/multipart';
+// import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+// import fs from 'node:fs';
+// import { promisify } from 'node:util';
+// import { pipeline } from 'node:stream';
+// import dotenv from 'dotenv';
+
+// // read .env file with configuration
+// dotenv.config();
+
+// // create s3 client using your credentials
+// const s3 = new S3Client({
+//   region: "ap-northeast-2",
+//   accessKeyId: "AKIAZC2UXGOT5ACEHZIZ",
+//   secretAccessKey: "b13R334ZQhOCwzSebl4+Djk9IPpfRX8aAA7GXL1m"
+// });
+
+// // create fastify app, and attach multipart/form-data parser
+// const app = Fastify({ logger: true });
+// app.register(FastifyMultipart);
+
+// // Here we receving a file and saving it into local folder
+// // by streaming it into readable steam
+// app.post('/upload', async (req) => {
+//   const data = await req.file();
+
+//   const uploadPath = `${process.env.UPLOAD_PATH}/${data.filename}`;
+//   const writeSteam = fs.createWriteStream(uploadPath);
+//   await pump(data.file, writeSteam);
+
+//   return { ok: true };
+// });
+
+// // Here we do the same thing, but instead of writing it into the local file
+// // we going to wait untill all file will be received to memory, and then we uploading it to s3 bucket
+// app.post('/upload/s3', async (req) => {
+//   const data = await req.file();
+
+//   const putObjectCommand = new PutObjectCommand({
+//     Bucket: process.env.AWS_BUCKET, 
+//     Key: data.filename,
+//     Body: await data.toBuffer(),
+//     ContentType: data.mimetype,
+//   });
+
+//   await s3.send(putObjectCommand);
+
+//   return { ok: true };
+// });
+
+
 // Class to handle child process used for running GStreamer
 
 const child_process = require('child_process');
