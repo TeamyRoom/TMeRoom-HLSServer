@@ -8,6 +8,23 @@ const { convertStringToStream } = require('./utils');
 
 const RECORD_FILE_LOCATION_PATH = process.env.RECORD_FILE_LOCATION_PATH || './files';
 
+const fs = require('fs');
+const fastify = require('fastify');
+const aws = require('aws-sdk')
+const { promisify } = require('util');
+const { pipeline } = require('stream');
+const dotenv = require('dotenv');
+// read .env file with configuration
+dotenv.config();
+
+// create s3 client using your credentials
+const s3 = new aws.S3({
+  accessKeyId: "accesskey",
+  secretAccessKey: "secretkey"
+});
+
+
+
 module.exports = class FFmpeg {
   constructor (rtpParameters) {
     this._rtpParameters = rtpParameters;
@@ -27,8 +44,32 @@ module.exports = class FFmpeg {
     if (this._process.stderr) {
       this._process.stderr.setEncoding('utf-8');
 
-      this._process.stderr.on('data', data =>
-        console.log('ffmpeg::process::data [data:%o]', data)
+      this._process.stderr.on('data', (data) => {
+        console.log('ffmpeg::process::data [data:%o]', data);
+        fs.readdir('./files', (err, files) => {
+          if (err) {
+              return console.log('Failed to list directory: ' + err);
+          } 
+        
+          console.log ("호출하나요");
+          files.forEach(file => {
+            
+              const params = {
+                  Body: fs.createReadStream('./files/' + file),
+                  Bucket:"hls-str-bucket",
+                  Key: file
+              }
+        
+              s3.upload(params, (err, data) => {
+                  if (err) {
+                      console.log('안녕하세요' + err)
+                  } else {
+                      console.log('안녕하세요' + data)
+                  }
+              });
+          });
+        });
+      }
       );
     }
 
