@@ -59,7 +59,9 @@ wss.on('connection', async (socket, request) => {
       const jsonMessage = JSON.parse(message);
       console.log('socket::message [jsonMessage:%o]', jsonMessage);
 
-      const response = await handleJsonMessage(jsonMessage);
+      const response = await handleJsonMessage(jsonMessage, socket);
+
+      
 
       if (response) {
         console.log('sending response %o', response);
@@ -82,7 +84,7 @@ wss.on('connection', async (socket, request) => {
   });
 });
 
-const handleJsonMessage = async (jsonMessage) => {
+const handleJsonMessage = async (jsonMessage, socket) => {
   const { action } = jsonMessage;
 
   switch (action) {
@@ -93,12 +95,15 @@ const handleJsonMessage = async (jsonMessage) => {
     case 'produce':
       return await handleProduceRequest(jsonMessage);
     case 'start-record':
-      return await handleStartRecordRequest(jsonMessage);
+      return await handleStartRecordRequest(jsonMessage, socket);
     case 'stop-record':
       return await handleStopRecordRequest(jsonMessage);
     default: console.log('handleJsonMessage() unknown action [action:%s]', action);
   }
 };
+
+
+
 
 const handleCreateTransportRequest = async (jsonMessage) => {
   const transport = await createTransport('webRtc', router);
@@ -167,7 +172,7 @@ const handleProduceRequest = async (jsonMessage) => {
   };
 };
 
-const handleStartRecordRequest = async (jsonMessage) => {
+const handleStartRecordRequest = async (jsonMessage, socket) => {
   console.log('handleStartRecordRequest() [data:%o]', jsonMessage);
   const peer = peers.get(jsonMessage.sessionId);
 
@@ -175,7 +180,7 @@ const handleStartRecordRequest = async (jsonMessage) => {
     throw new Error(`Peer with id ${jsonMessage.sessionId} was not found`);
   }
 
-  startRecord(peer);
+  startRecord(peer, socket);
 };
 
 const handleStopRecordRequest = async (jsonMessage) => {
@@ -264,7 +269,7 @@ const publishProducerRtpStream = async (peer, producer, ffmpegRtpCapabilities) =
   };
 };
 
-const startRecord = async (peer) => {
+const startRecord = async (peer,socket) => {
   let recordInfo = {};
 
   for (const producer of peer.producers) {
@@ -273,7 +278,19 @@ const startRecord = async (peer) => {
 
   recordInfo.fileName = Date.now().toString();
 
+  // send to Teacher hls_file_name
+  const hlsMessage = JSON.stringify({
+    action: 'hls-file-name',
+    id: recordInfo.fileName
+  });
+
+  console.log("겟파일네임", recordInfo.fileName);
+  socket.send(hlsMessage)
+  
+
   peer.process = getProcess(recordInfo);
+
+  
 
   setTimeout(async () => {
     for (const consumer of peer.consumers) {
@@ -283,13 +300,17 @@ const startRecord = async (peer) => {
       await consumer.requestKeyFrame();
     }
   }, 1000);
+
+
+  
 };
 
 // Returns process command to use (GStreamer/FFmpeg) default is FFmpeg
 const getProcess = (recordInfo) => {
   switch (PROCESS_NAME) {
-    case 'GStreamer':
+    case 'GStreamer': {
       return new GStreamer(recordInfo);
+    }
     case 'FFmpeg':
     default:
       return new FFmpeg(recordInfo);
