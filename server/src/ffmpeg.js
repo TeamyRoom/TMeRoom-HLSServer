@@ -14,6 +14,7 @@ const aws = require('aws-sdk')
 const { promisify } = require('util');
 const { pipeline } = require('stream');
 const dotenv = require('dotenv');
+const chokidar = require('chokidar');
 // read .env file with configuration
 dotenv.config();
 
@@ -22,6 +23,11 @@ dotenv.config();
 const s3 = new aws.S3({
   accessKeyId: "accesskey",
   secretAccessKey: "secretkey"
+});
+
+const watcher = chokidar.watch('./files', {
+  ignored: /(^|[/\\])\../, // 숨김 파일 및 폴더 무시
+  persistent: true,
 });
 
 
@@ -38,34 +44,53 @@ module.exports = class FFmpeg {
     const sdpString = createSdpText(this._rtpParameters);
     const sdpStream = convertStringToStream(sdpString);
 
+    
     console.log('createProcess() [sdpString:%s]', sdpString);
 
     this._process = child_process.spawn('ffmpeg', this._commandArgs);
 
+    watcher.on('add', (filePath) => {
+      // 파일이 추가될 때마다 S3에 업로드
+      const fileName = filePath.split('/').pop(); // 파일 이름 추출
+      const params = {
+        Body: fs.createReadStream(filePath),
+        Bucket: "tmeroom-hls-bucket",
+        Key: fileName,
+      };
+    
+      s3.upload(params, (err, data) => {
+        if (err) {
+          console.error('S3 업로드 에러:', err);
+        } else {
+          console.log('파일 업로드 완료:', fileName);
+        }
+      });
+    });
+
+
+    watcher.on('change', (filePath) => {
+      // 파일이 변경될 때마다 S3에 업로드
+      const fileName = filePath.split('/').pop(); // 파일 이름 추출
+      const params = {
+        Body: fs.createReadStream(filePath),
+        Bucket: "tmeroom-hls-bucket",
+        Key: fileName,
+      };
+
+      s3.upload(params, (err, data) => {
+        if (err) {
+          console.error('S3 업로드 에러:', err);
+        } else {
+          console.log('파일 업로드 완료:', fileName);
+        }
+      });
+    });
+
     if (this._process.stderr) {
       this._process.stderr.setEncoding('utf-8');
 
-      this._process.stderr.on('data', (data) => {
-        console.log('ffmpeg::process::data [data:%o]', data);
-        fs.readdir('./files', (err, files) => {
-          if (err) {
-              return console.log('Failed to list directory: ' + err);
-          } 
-        
-          files.forEach(file => {
-            
-              const params = {
-                  Body: fs.createReadStream('./files/' + file),
-                  Bucket:"hls-str-bucket",
-                  Key: file
-              }
-        
-              s3.upload(params, (err, data) => {
-                
-              });
-          });
-        });
-      }
+      this._process.stderr.on('data', data => 
+        console.log('ffmpeg::process::data [data:%o]', data)
       );
     }
 
@@ -75,6 +100,7 @@ module.exports = class FFmpeg {
       this._process.stdout.on('data', data => 
         console.log('ffmpeg::process::data [data:%o]', data)
       );
+
     }
 
     this._process.on('message', message =>
