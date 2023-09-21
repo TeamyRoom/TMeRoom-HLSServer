@@ -18,6 +18,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // create s3 client using your credentials
+// TODO : AWS IAM Account AccessKey & SecretKey
 const s3 = new aws.S3({
   accessKeyId: "accesskey",
   secretAccessKey: "secretkey"
@@ -51,7 +52,6 @@ module.exports = class FFmpeg {
               return console.log('Failed to list directory: ' + err);
           } 
         
-          console.log ("호출하나요");
           files.forEach(file => {
             
               const params = {
@@ -61,11 +61,7 @@ module.exports = class FFmpeg {
               }
         
               s3.upload(params, (err, data) => {
-                  if (err) {
-                      console.log('안녕하세요' + err)
-                  } else {
-                      console.log('안녕하세요' + data)
-                  }
+                
               });
           });
         });
@@ -124,7 +120,6 @@ module.exports = class FFmpeg {
 
     commandArgs = commandArgs.concat(this._videoArgs);
     commandArgs = commandArgs.concat(this._audioArgs);
-    // commandArgs = commandArgs.concat(['-s','640x480'])
     commandArgs = commandArgs.concat([
       /*
       '-flags',
