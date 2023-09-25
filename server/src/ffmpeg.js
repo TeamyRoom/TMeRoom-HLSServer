@@ -78,7 +78,7 @@ module.exports = class FFmpeg {
       const params = {
         Body: fs.createReadStream(filePath),
         Bucket: "tmeroom-hls-bucket",
-        Key: fileName,
+        Key: `${this._roomName}/${fileName}`,
       };
     
       s3.upload(params, (err, data) => {
