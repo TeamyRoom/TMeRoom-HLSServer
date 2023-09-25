@@ -18,6 +18,7 @@ const chokidar = require('chokidar');
 // read .env file with configuration
 dotenv.config();
 
+
 // create s3 client using your credentials
 // TODO : AWS IAM Account AccessKey & SecretKey
 const s3 = new aws.S3({
@@ -25,29 +26,51 @@ const s3 = new aws.S3({
   secretAccessKey: "secretkey"
 });
 
-const watcher = chokidar.watch('./files', {
-  ignored: /(^|[/\\])\../, // 숨김 파일 및 폴더 무시
-  persistent: true,
-});
+
+
 
 
 
 module.exports = class FFmpeg {
-  constructor (rtpParameters) {
+  constructor (rtpParameters, roomName) {
     this._rtpParameters = rtpParameters;
     this._process = undefined;
     this._observer = new EventEmitter();
+    this._roomName = roomName;
+    this._createRoomDirectory();
     this._createProcess();
   }
+
+  _createRoomDirectory() {
+    const filePath = RECORD_FILE_LOCATION_PATH;
+
+    if (!fs.existsSync(filePath)) {
+      // files 디렉토리가 존재하지 않으면 생성
+      fs.mkdirSync(filePath);
+    }
+
+    const roomDirectory = `${filePath}/${this._roomName}`;
+
+    if (!fs.existsSync(roomDirectory)) {
+      fs.mkdirSync(roomDirectory);
+    }
+  }
+
 
   _createProcess () {
     const sdpString = createSdpText(this._rtpParameters);
     const sdpStream = convertStringToStream(sdpString);
+    
 
     
     console.log('createProcess() [sdpString:%s]', sdpString);
 
     this._process = child_process.spawn('ffmpeg', this._commandArgs);
+
+    const watcher = chokidar.watch(`${RECORD_FILE_LOCATION_PATH}/${this._roomName}`, {
+      ignored: /(^|[/\\])\../, // 숨김 파일 및 폴더 무시
+      persistent: true,
+    });
 
     watcher.on('add', (filePath) => {
       // 파일이 추가될 때마다 S3에 업로드
@@ -55,7 +78,7 @@ module.exports = class FFmpeg {
       const params = {
         Body: fs.createReadStream(filePath),
         Bucket: "tmeroom-hls-bucket",
-        Key: fileName,
+        Key: `${this._roomName}/${fileName}`,
       };
     
       s3.upload(params, (err, data) => {
@@ -74,7 +97,7 @@ module.exports = class FFmpeg {
       const params = {
         Body: fs.createReadStream(filePath),
         Bucket: "tmeroom-hls-bucket",
-        Key: fileName,
+        Key: `${this._roomName}/${fileName}`,
       };
 
       s3.upload(params, (err, data) => {
@@ -151,9 +174,8 @@ module.exports = class FFmpeg {
       '-flags',
       '+global_header',
       */
-      `${RECORD_FILE_LOCATION_PATH}/${this._rtpParameters.fileName}.m3u8`
+      `${RECORD_FILE_LOCATION_PATH}/${this._roomName}/${this._rtpParameters.fileName}.m3u8`
     ]);
-    // commandArgs = commandArgs.concat(['ffprobe',`${RECORD_FILE_LOCATION_PATH}/${this._rtpParameters.fileName}.webm`])
 
     console.log('commandArgs:%o', commandArgs);
 
