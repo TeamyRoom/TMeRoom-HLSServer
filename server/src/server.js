@@ -180,7 +180,9 @@ const handleStartRecordRequest = async (jsonMessage, socket) => {
     throw new Error(`Peer with id ${jsonMessage.sessionId} was not found`);
   }
 
-  startRecord(peer, socket);
+  const roomName = jsonMessage.roomName;
+  console.log("방이름은 ", roomName, "야");
+  startRecord(peer, socket, roomName);
 };
 
 const handleStopRecordRequest = async (jsonMessage) => {
@@ -269,7 +271,7 @@ const publishProducerRtpStream = async (peer, producer, ffmpegRtpCapabilities) =
   };
 };
 
-const startRecord = async (peer,socket) => {
+const startRecord = async (peer,socket, roomName) => {
   let recordInfo = {};
 
   for (const producer of peer.producers) {
@@ -288,7 +290,7 @@ const startRecord = async (peer,socket) => {
   socket.send(hlsMessage)
   
 
-  peer.process = getProcess(recordInfo);
+  peer.process = getProcess(recordInfo, roomName);
 
   
 
@@ -306,13 +308,13 @@ const startRecord = async (peer,socket) => {
 };
 
 // Returns process command to use (GStreamer/FFmpeg) default is FFmpeg
-const getProcess = (recordInfo) => {
+const getProcess = (recordInfo, roomName) => {
   switch (PROCESS_NAME) {
     case 'GStreamer': 
       return new GStreamer(recordInfo);
     case 'FFmpeg':
     default:
-      return new FFmpeg(recordInfo);
+      return new FFmpeg(recordInfo, roomName);
   }
 };
 
