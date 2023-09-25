@@ -42,14 +42,14 @@ module.exports = class FFmpeg {
   }
 
   _createRoomDirectory() {
-    const filesDirectory = `./files`;
+    const filePath = RECORD_FILE_LOCATION_PATH;
 
-    if (!fs.existsSync(filesDirectory)) {
+    if (!fs.existsSync(filePath)) {
       // files 디렉토리가 존재하지 않으면 생성
-      fs.mkdirSync(filesDirectory);
+      fs.mkdirSync(filePath);
     }
 
-    const roomDirectory = `${filesDirectory}/${this._roomName}`;
+    const roomDirectory = `${filePath}/${this._roomName}`;
 
     if (!fs.existsSync(roomDirectory)) {
       fs.mkdirSync(roomDirectory);
@@ -67,7 +67,7 @@ module.exports = class FFmpeg {
 
     this._process = child_process.spawn('ffmpeg', this._commandArgs);
 
-    const watcher = chokidar.watch(`./files/${this._roomName}`, {
+    const watcher = chokidar.watch(`${RECORD_FILE_LOCATION_PATH}/${this._roomName}`, {
       ignored: /(^|[/\\])\../, // 숨김 파일 및 폴더 무시
       persistent: true,
     });
@@ -97,7 +97,7 @@ module.exports = class FFmpeg {
       const params = {
         Body: fs.createReadStream(filePath),
         Bucket: "tmeroom-hls-bucket",
-        Key: fileName,
+        Key: `${this._roomName}/${fileName}`,
       };
 
       s3.upload(params, (err, data) => {
