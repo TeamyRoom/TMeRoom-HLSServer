@@ -164,7 +164,9 @@ module.exports = class FFmpeg {
       '-f',
       'sdp',
       '-i',
-      'pipe:0'
+      'pipe:0',
+      '-vsync',
+      'vfr',
     ];
 
     commandArgs = commandArgs.concat(this._videoArgs);
@@ -199,6 +201,17 @@ module.exports = class FFmpeg {
       '-2',
       '-c:a',
       'copy'
+    ];
+  }
+
+  get _additionalArgs () {
+    return [
+      '-f', 
+      'hls', 
+      '-hls_time', 
+      '6', 
+      '-hls_list_size', 
+      '3600'
     ];
   }
 }
