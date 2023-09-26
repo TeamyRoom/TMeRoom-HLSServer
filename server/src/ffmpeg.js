@@ -203,4 +203,15 @@ module.exports = class FFmpeg {
       'copy'
     ];
   }
+
+  get _additionalArgs () {
+    return [
+      '-f', 
+      'hls', 
+      '-hls_time', 
+      '6', 
+      '-hls_list_size', 
+      '3600'
+    ];
+  }
 }
