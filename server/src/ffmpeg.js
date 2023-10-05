@@ -165,12 +165,13 @@ module.exports = class FFmpeg {
       'sdp',
       '-i',
       'pipe:0',
-      '-vsync',
-      'vfr',
+      '-r',
+      '60'
     ];
 
     commandArgs = commandArgs.concat(this._videoArgs);
     commandArgs = commandArgs.concat(this._audioArgs);
+    commandArgs = commandArgs.concat(this._additionalArgs);
     commandArgs = commandArgs.concat([
       /*
       '-flags',
