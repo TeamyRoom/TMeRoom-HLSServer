@@ -206,12 +206,12 @@ module.exports = class FFmpeg {
 
   get _additionalArgs () {
     return [
-      '-f', 
-      'hls', 
+      // '-hls_init_time',
+      // '10',
       '-hls_time', 
-      '6', 
+      '2',
       '-hls_list_size', 
-      '3600'
+      '0'
     ];
   }
 }
