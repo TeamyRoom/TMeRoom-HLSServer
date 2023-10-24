@@ -17,4 +17,7 @@ COPY /server/package-lock.json ./server
 RUN cd server && npm update && npm install
 COPY . .
 RUN cd server/node_modules/mediasoup/worker && make
-EXPOSE 443 8080 22 3000 80
+
+RUN chmod +x start.sh
+CMD ["./start.sh"]
+EXPOSE 443 8080 80 3000 20000-20100 30000-30100 
