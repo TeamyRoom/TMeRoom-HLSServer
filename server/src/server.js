@@ -1,5 +1,4 @@
-const express = require('express');
-const http = require('http');
+const https = require('https');
 const WebSocket = require('ws');
 const { v1: uuidv1 } = require('uuid');
 
@@ -12,19 +11,18 @@ const { getPort, releasePort } = require('./port');
 
 const PROCESS_NAME = process.env.PROCESS_NAME || 'FFmpeg';
 const SERVER_PORT = process.env.SERVER_PORT || 3000;
+const HTTPS_OPTIONS = Object.freeze({
+    cert: fs.readFileSync('./ssl/server.crt'),
+    key: fs.readFileSync('./ssl/server.key')
+});
 
-const app = express();
-const httpServer = http.createServer(app);
-const ws = new WebSocket.Server({ server: httpServer });
+const httpsServer = https.createServer(HTTPS_OPTIONS);
+const wss = new WebSocket.Server({ server: httpsServer });
 const peers = new Map();
 
 let router;
-//---커넥션 테스트용 간단 API
-app.get("/api/v1/echo", (req, res) => {
-    res.send("Hello world!")
-})
 
-ws.on('connection', async (socket, request) => {
+wss.on('connection', async (socket, request) => {
     console.log('new socket connection [ip%s]', request.headers['x-forwared-for'] || request.headers.origin);
 
     try {
