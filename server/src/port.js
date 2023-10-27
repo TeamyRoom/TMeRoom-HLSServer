@@ -2,7 +2,6 @@
 
 const MIN_PORT = 20000;
 const MAX_PORT = 30000;
-const TIMEOUT = 400;
 
 const takenPortSet = new Set();
 
