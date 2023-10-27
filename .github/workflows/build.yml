@@ -5,13 +5,47 @@ on:
 name: AWS ECR push & Integration
 
 jobs:
+  setting_for_build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out env files
+        uses: actions/checkout@v3
+        with:
+          repository: TeamyRoom/TMeRoom-ServerEnv
+          ref: master
+          token: ${{ secrets.ACTION_TOKEN }}
+
+      - name: Upload env file
+        uses: actions/upload-artifact@master
+        with:
+          name: hls-env
+          # 가져올 프로젝트의 설정 파일을 지정
+          path: ./hls/.env
+
+
   push_to_registry:
     runs-on: ubuntu-latest
-
+    needs: stting_for_build
     steps:
       # Github에 저장된 코드를 CI 서버로 내려받아 뒷 step에서 사용할 수 있도록 하는 과정
       - name: Checkout
         uses: actions/checkout@v2
+
+      # env 다운로드
+      - name: Download env files
+        uses: actions/download-artifact@master
+        with:
+          name: hls-env
+          path: ./server/
+
+      # 업로드한 artifacts를 삭제하기
+      - name: Remove Github Actions Artifacts
+        if : always()
+        uses: GeekyEggo/delete-artifact@v2.0.0
+        with:
+          # The name of the artifact to delete; multiple names can be supplied on new lines.
+          name: |
+            hls-env
 
       # Github Secret과 local env 에 저장된 값 불러오기
       - name: Configure AWS credentials
@@ -30,7 +64,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: tmeroom-hls
-          IMAGE_TAG: ${{ github.run_number }}
+          IMAGE_TAG: ${{ github.run_number }}.${{ github.run_attempt }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -80,7 +114,7 @@ jobs:
           pwd
           ls
           cd TMeRoom-k8s-manifest/overlays/prd/ 
-          kustomize edit set image ${{ steps.login-ecr.outputs.registry }}/tmeroom-hls=${{ steps.login-ecr.outputs.registry }}/tmeroom-hls:${{ github.run_number }}
+          kustomize edit set image ${{ steps.login-ecr.outputs.registry }}/tmeroom-hls=${{ steps.login-ecr.outputs.registry }}/tmeroom-hls:${{ github.run_number }}.${{ github.run_attempt }}
           cat kustomization.yaml
       # 수정된 kustomization.yaml 파일 commit push
       - name: Commit and Push manfiest files
@@ -88,6 +122,65 @@ jobs:
         with:
           author_name: yslee96
           author_email: dbstn322@gmail.com
-          message: "🔧   : HLS 서버 이미지 태그 업데이트 #${{ github.run_number }}"
+          message: "🔧   : HLS 서버 이미지 태그 업데이트 #${{ github.run_number }}.${{ github.run_attempt }}"
           cwd: './TMeRoom-k8s-manifest'
           push: true
+
+
+  deploy-ec2:
+    runs-on: ubuntu-latest
+    needs: push_to_registry
+    steps:
+
+      # github action의 IP가 수시로 바뀌므로
+      # 그 ip를 ec2의 인바운드 규칙에서 허용해야 하므로
+      # github action의 IP를 얻어온다.
+      - name: Get Github Actions IP
+        id: ip
+        uses: haythem/public-ip@v1.3
+
+      # ec2 IAM 계정의 access key, secret key의 계정정보 등록
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}  
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+          
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # 보안 그룹 ID를 입력하여 github action이 EC2에 접근할 수 있도록 설정
+      - name: Add Github Actions IP to Security group
+        run: |
+          aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
+        env:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+          
+      - name: SSH Commands
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.AWS_SSH_HLS_HOST }}
+          username: ${{ secrets.AWS_SSH_USERNAME }}
+          key: ${{ secrets.AWS_SSH_HLS_KEY }}
+
+          # 스크립트 중간에 실패하면 다음 스크립트를 실행하지 않는 옵션 true로 주기
+          script_stop: true
+          # 변경해야 할 값
+          # script에 작성된 명령어를 도커 허브에 push한 이미지를 받도록 변경해야 함
+          script: |
+            aws ecr get-login-password --region ap-northeast-2 | sudo docker login --username AWS --password-stdin 135685504741.dkr.ecr.ap-northeast-2.amazonaws.com
+            sudo docker pull 135685504741.dkr.ecr.ap-northeast-2.amazonaws.com/tmeroom-hls:${{ github.run_number }}.${{ github.run_attempt }}
+            sudo docker rm -f tmeroom-app
+            sudo docker run --network host -itd --name tmeroom-app 135685504741.dkr.ecr.ap-northeast-2.amazonaws.com/tmeroom-hls:${{ github.run_number }}.${{ github.run_attempt }}
+      # 등록했던 인바운드 규칙을 삭제하기
+      - name: Remove Github Actions IP From Security Group
+        run: |
+          aws ec2 revoke-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
+        env:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
