@@ -1,6 +1,7 @@
 const https = require('https');
 const WebSocket = require('ws');
 const { v1: uuidv1 } = require('uuid');
+const fs = require('fs');
 
 const config = require('./config');
 const FFmpeg = require('./ffmpeg');
