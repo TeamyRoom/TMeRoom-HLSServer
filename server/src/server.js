@@ -171,7 +171,7 @@ const handleStartRecordRequest = async (jsonMessage, socket) => {
 
     const roomName = jsonMessage.roomName;
     console.log('방이름은 ', roomName, '야');
-    startRecord(peer, socket, roomName);
+    setTimeout(() => startRecord(peer, socket, roomName), 1000);
 };
 
 const handleStopRecordRequest = async (jsonMessage) => {

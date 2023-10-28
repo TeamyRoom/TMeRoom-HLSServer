@@ -1,6 +1,7 @@
 // Config file for mediasoup elements
 
 const os = require('os');
+const HLS_SERVER_IP = process.env.EC2_ELASTIC_IP || '127.0.0.1';
 
 module.exports = Object.freeze({
   numWorkers: Object.keys(os.cpus()).length,
@@ -53,15 +54,14 @@ module.exports = Object.freeze({
     ]
   },
   webRtcTransport: {
-    listenIps: [ { ip: '0.0.0.0', announcedIp: '127.0.0.1' } ], // TODO: Change announcedIp to your external IP or domain name
+    listenIps: [ { ip: '0.0.0.0', announcedIp: HLS_SERVER_IP } ], 
     enableUdp: true,
     enableTcp: true,
     preferUdp: true,
     maxIncomingBitrate: 1500000
   },
   plainRtpTransport: {
-    listenIp: { ip: '0.0.0.0', announcedIp: '127.0.0.1' }, // TODO: Change announcedIp to your external IP or domain name
-    rtcpMux: true,
+    listenIp: { ip: '0.0.0.0', announcedIp: HLS_SERVER_IP }, 
     comedia: false
   }
 });

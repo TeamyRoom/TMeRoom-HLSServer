@@ -1,5 +1,5 @@
 const { getCodecInfoFromRtpParameters } = require('./utils');
-
+const HLS_SERVER_IP = process.env.EC2_ELASTIC_IP || '127.0.0.1';
 // File to create SDP text from mediasoup RTP Parameters
 module.exports.createSdpText = (rtpParameters) => {
   const { video, audio } = rtpParameters;
@@ -11,9 +11,9 @@ module.exports.createSdpText = (rtpParameters) => {
   const audioCodecInfo = getCodecInfoFromRtpParameters('audio', audio.rtpParameters);
 
   return `v=0
-  o=- 0 0 IN IP4 127.0.0.1
+  o=- 0 0 IN IP4 ${HLS_SERVER_IP}
   s=FFmpeg
-  c=IN IP4 127.0.0.1
+  c=IN IP4 ${HLS_SERVER_IP}
   t=0 0
   m=video ${video.remoteRtpPort} RTP/AVP ${videoCodecInfo.payloadType} 
   a=rtpmap:${videoCodecInfo.payloadType} ${videoCodecInfo.codecName}/${videoCodecInfo.clockRate}
