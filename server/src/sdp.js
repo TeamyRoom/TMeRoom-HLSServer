@@ -1,5 +1,7 @@
+require('dotenv').config()
 const { getCodecInfoFromRtpParameters } = require('./utils');
 const HLS_SERVER_IP = process.env.EC2_ELASTIC_IP || '127.0.0.1';
+
 // File to create SDP text from mediasoup RTP Parameters
 module.exports.createSdpText = (rtpParameters) => {
   const { video, audio } = rtpParameters;

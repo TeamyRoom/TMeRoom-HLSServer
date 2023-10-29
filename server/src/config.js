@@ -1,3 +1,4 @@
+require('dotenv').config()
 // Config file for mediasoup elements
 
 const os = require('os');
