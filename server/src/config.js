@@ -63,6 +63,7 @@ module.exports = Object.freeze({
   },
   plainRtpTransport: {
     listenIp: { ip: '0.0.0.0', announcedIp: HLS_SERVER_IP }, 
-    comedia: false
+    comedia: false,
+    rtcpMux: false,
   }
 });
