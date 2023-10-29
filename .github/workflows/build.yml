@@ -174,7 +174,7 @@ jobs:
           script: |
             aws ecr get-login-password --region ap-northeast-2 | sudo docker login --username AWS --password-stdin 135685504741.dkr.ecr.ap-northeast-2.amazonaws.com
             sudo docker rm -f tmeroom-app
-            sudo docker prune image -af
+            sudo docker image prune -fa
             sudo docker pull 135685504741.dkr.ecr.ap-northeast-2.amazonaws.com/tmeroom-hls:${{ github.run_number }}.${{ github.run_attempt }}
             sudo docker run --network host -itd --name tmeroom-app 135685504741.dkr.ecr.ap-northeast-2.amazonaws.com/tmeroom-hls:${{ github.run_number }}.${{ github.run_attempt }}
       # 등록했던 인바운드 규칙을 삭제하기

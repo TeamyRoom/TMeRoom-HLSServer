@@ -20,4 +20,4 @@ RUN cd server/node_modules/mediasoup/worker && make
 
 RUN chmod +x start.sh
 CMD ["./start.sh"]
-EXPOSE 443 8080 80 3000 20000-20100 30000-30100 
+EXPOSE 443 80 3000 20000-30000 40000-50000 
