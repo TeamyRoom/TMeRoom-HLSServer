@@ -16,6 +16,7 @@ const HTTPS_OPTIONS = Object.freeze({
     cert: fs.readFileSync('./ssl/server.crt'),
     key: fs.readFileSync('./ssl/server.key')
 });
+const HLS_SERVER_IP = process.env.EC2_ELASTIC_IP || '127.0.0.1';
 
 const httpsServer = https.createServer(HTTPS_OPTIONS);
 const wss = new WebSocket.Server({ server: httpsServer });
@@ -211,20 +212,23 @@ const publishProducerRtpStream = async (peer, producer, ffmpegRtpCapabilities) =
     // Set the receiver RTP ports
     const remoteRtpPort = await getPort();
     peer.remotePorts.push(remoteRtpPort);
+    
+    let endpointParameters = {
+        ip: HLS_SERVER_IP,
+        port: remoteRtpPort,
+    };
 
     let remoteRtcpPort;
     // If rtpTransport rtcpMux is false also set the receiver RTCP ports
     if (!rtpTransportConfig.rtcpMux) {
         remoteRtcpPort = await getPort();
         peer.remotePorts.push(remoteRtcpPort);
+        endpointParameters.rtcpPort = remoteRtcpPort;
     }
 
+
     // Connect the mediasoup RTP transport to the ports used by GStreamer
-    await rtpTransport.connect({
-        ip: '127.0.0.1',
-        port: remoteRtpPort,
-        rtcpPort: remoteRtcpPort,
-    });
+    await rtpTransport.connect(endpointParameters);
 
     peer.addTransport(rtpTransport);
 
