@@ -2,7 +2,7 @@ require('dotenv').config()
 // Config file for mediasoup elements
 
 const os = require('os');
-const HLS_SERVER_IP = process.env.EC2_ELASTIC_IP || '127.0.0.1';
+const HLS_HOST = process.env.HLS_HOST || '127.0.0.1';
 
 module.exports = Object.freeze({
   numWorkers: Object.keys(os.cpus()).length,
@@ -55,14 +55,14 @@ module.exports = Object.freeze({
     ]
   },
   webRtcTransport: {
-    listenIps: [ { ip: '0.0.0.0', announcedIp: HLS_SERVER_IP } ], 
+    listenIps: [ { ip: '0.0.0.0', announcedIp: HLS_HOST } ], 
     enableUdp: true,
     enableTcp: true,
     preferUdp: true,
     maxIncomingBitrate: 1500000
   },
   plainRtpTransport: {
-    listenIp: { ip: '0.0.0.0', announcedIp: HLS_SERVER_IP }, 
+    listenIp: { ip: '0.0.0.0', announcedIp: HLS_HOST }, 
     comedia: false,
     rtcpMux: false,
   }
