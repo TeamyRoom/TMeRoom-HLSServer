@@ -1,4 +1,4 @@
-const https = require('https');
+require('dotenv').config()
 const WebSocket = require('ws');
 const { v1: uuidv1 } = require('uuid');
 const fs = require('fs');
@@ -16,15 +16,14 @@ const HTTPS_OPTIONS = Object.freeze({
     cert: fs.readFileSync('./ssl/server.crt'),
     key: fs.readFileSync('./ssl/server.key')
 });
-const HLS_SERVER_IP = process.env.EC2_ELASTIC_IP || '127.0.0.1';
 
-const httpsServer = https.createServer(HTTPS_OPTIONS);
-const wss = new WebSocket.Server({ server: httpsServer });
+const server = process.env.IS_BEHIND_NGINX === 'true' ? require('http').createServer() : require('https').createServer(HTTPS_OPTIONS);
+const ws = new WebSocket.Server({ server });
 const peers = new Map();
 
 let router;
 
-wss.on('connection', async (socket, request) => {
+ws.on('connection', async (socket, request) => {
     console.log('new socket connection [ip%s]', request.headers['x-forwared-for'] || request.headers.origin);
 
     try {
@@ -214,7 +213,7 @@ const publishProducerRtpStream = async (peer, producer, ffmpegRtpCapabilities) =
     peer.remotePorts.push(remoteRtpPort);
     
     let endpointParameters = {
-        ip: HLS_SERVER_IP,
+        ip: '127.0.0.1', // 피어 연결을 나 자신과 하는 것이므로, 127.0.0.1을 써야 함.
         port: remoteRtpPort,
     };
 
@@ -307,8 +306,9 @@ const getProcess = (recordInfo, roomName) => {
         console.log('starting server [processName:%s]', PROCESS_NAME);
         await initializeWorkers();
         router = await createRouter();
-
-        httpsServer.listen(SERVER_PORT, () => console.log('Socket Server listening on port %d', SERVER_PORT));
+        
+        let serverKind = process.env.IS_BEHIND_NGINX === 'true' ? 'HTTP' : 'HTTPS'
+        server.listen(SERVER_PORT, () => console.log(`${serverKind} Socket Server listening on port ${SERVER_PORT}`));
     } catch (error) {
         console.error('Failed to initialize application [error:%o] destroying in 2 seconds...', error);
         setTimeout(() => process.exit(1), 2000);
