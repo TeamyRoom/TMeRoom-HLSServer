@@ -74,6 +74,15 @@ module.exports = class FFmpeg {
                     console.error('S3 업로드 에러:', err);
                 } else {
                     console.log('파일 업로드 완료:', fileName);
+                    if (fileName.endsWith('.ts')) {
+                        fs.unlink(filePath, (err) => {
+                            if (err) {
+                                console.error("로컬 파일 삭제 에러", err);
+                            } else {
+                                console.log("로컬 파일 삭제 완료", fileName);
+                            }
+                        })
+                    }
                 }
             });
         });
@@ -139,10 +148,10 @@ module.exports = class FFmpeg {
             '+genpts',
             '-f',
             'sdp',
-            '-hwaccel',
-            'auto',
             '-i',
             'pipe:0',
+            '-r','20',
+            '-max_interleave_delta', '0',
         ];
 
         commandArgs = commandArgs.concat(this._videoArgs);
@@ -184,6 +193,8 @@ module.exports = class FFmpeg {
             '2',
             '-hls_list_size',
             '0',
+            '-g',
+            '48'
         ];
     }
 };
