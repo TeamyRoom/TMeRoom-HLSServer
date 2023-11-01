@@ -1,6 +1,6 @@
 require('dotenv').config()
 const { getCodecInfoFromRtpParameters } = require('./utils');
-const HLS_HOST = process.env.HLS_HOST || '127.0.0.1';
+const HLS_HOST = process.env.STUNNER_HOST || '127.0.0.1';
 
 // File to create SDP text from mediasoup RTP Parameters
 module.exports.createSdpText = (rtpParameters) => {

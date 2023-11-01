@@ -1,4 +1,4 @@
-require('dotenv').config()
+require('dotenv').config();
 const WebSocket = require('ws');
 const { v1: uuidv1 } = require('uuid');
 const fs = require('fs');
@@ -14,12 +14,24 @@ const PROCESS_NAME = process.env.PROCESS_NAME || 'FFmpeg';
 const SERVER_PORT = process.env.SERVER_PORT || 3000;
 const HTTPS_OPTIONS = Object.freeze({
     cert: fs.readFileSync('./ssl/server.crt'),
-    key: fs.readFileSync('./ssl/server.key')
+    key: fs.readFileSync('./ssl/server.key'),
 });
 
-const server = process.env.IS_BEHIND_NGINX === 'true' ? require('http').createServer() : require('https').createServer(HTTPS_OPTIONS);
+const server =
+    process.env.IS_BEHIND_NGINX === 'true'
+        ? require('http').createServer()
+        : require('https').createServer(HTTPS_OPTIONS);
 const ws = new WebSocket.Server({ server });
 const peers = new Map();
+
+const { STUNNER_USERNAME, STUNNER_PASSWORD, STUNNER_PORT, STUNNER_HOST } = process.env;
+const iceServers = Object.freeze([
+    {
+        url: 'turn:' + STUNNER_HOST + ':' + STUNNER_PORT + '?transport=udp',
+        username: STUNNER_USERNAME,
+        credential: STUNNER_PASSWORD,
+    },
+]);
 
 let router;
 
@@ -107,6 +119,7 @@ const handleCreateTransportRequest = async (jsonMessage) => {
         iceParameters: transport.iceParameters,
         iceCandidates: transport.iceCandidates,
         dtlsParameters: transport.dtlsParameters,
+        iceServers: iceServers,
     };
 };
 
@@ -211,7 +224,7 @@ const publishProducerRtpStream = async (peer, producer, ffmpegRtpCapabilities) =
     // Set the receiver RTP ports
     const remoteRtpPort = await getPort();
     peer.remotePorts.push(remoteRtpPort);
-    
+
     let endpointParameters = {
         ip: '127.0.0.1', // 피어 연결을 나 자신과 하는 것이므로, 127.0.0.1을 써야 함.
         port: remoteRtpPort,
@@ -224,7 +237,6 @@ const publishProducerRtpStream = async (peer, producer, ffmpegRtpCapabilities) =
         peer.remotePorts.push(remoteRtcpPort);
         endpointParameters.rtcpPort = remoteRtcpPort;
     }
-
 
     // Connect the mediasoup RTP transport to the ports used by GStreamer
     await rtpTransport.connect(endpointParameters);
@@ -306,8 +318,8 @@ const getProcess = (recordInfo, roomName) => {
         console.log('starting server [processName:%s]', PROCESS_NAME);
         await initializeWorkers();
         router = await createRouter();
-        
-        let serverKind = process.env.IS_BEHIND_NGINX === 'true' ? 'HTTP' : 'HTTPS'
+
+        let serverKind = process.env.IS_BEHIND_NGINX === 'true' ? 'HTTP' : 'HTTPS';
         server.listen(SERVER_PORT, () => console.log(`${serverKind} Socket Server listening on port ${SERVER_PORT}`));
     } catch (error) {
         console.error('Failed to initialize application [error:%o] destroying in 2 seconds...', error);
