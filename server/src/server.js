@@ -30,7 +30,7 @@ const iceServers = Object.freeze([
         url: 'turn:' + STUNNER_HOST + ':' + STUNNER_PORT + '?transport=udp',
         username: STUNNER_USERNAME,
         credential: STUNNER_PASSWORD,
-    },
+    }
 ]);
 
 let router;
@@ -120,6 +120,7 @@ const handleCreateTransportRequest = async (jsonMessage) => {
         iceCandidates: transport.iceCandidates,
         dtlsParameters: transport.dtlsParameters,
         iceServers: iceServers,
+        iceTransportPolicy: 'relay'
     };
 };
 
