@@ -1,5 +1,4 @@
 // Class to handle child process used for running FFmpeg
-
 const child_process = require('child_process');
 const { EventEmitter } = require('events');
 
@@ -12,10 +11,8 @@ const fs = require('fs');
 const aws = require('aws-sdk');
 const dotenv = require('dotenv');
 const chokidar = require('chokidar');
-// read .env file with configuration
 dotenv.config();
 
-// create s3 client using your credentials
 // TODO : AWS IAM Account AccessKey & SecretKey
 const s3 = new aws.S3({
     accessKeyId: process.env.S3_ACCESS_KEY_ID,
@@ -151,7 +148,6 @@ module.exports = class FFmpeg {
             '-i',
             'pipe:0',
             '-r','20',
-            '-max_interleave_delta', '0',
         ];
 
         commandArgs = commandArgs.concat(this._videoArgs);
