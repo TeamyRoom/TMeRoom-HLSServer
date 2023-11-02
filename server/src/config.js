@@ -2,7 +2,7 @@ require('dotenv').config()
 // Config file for mediasoup elements
 
 const os = require('os');
-const HLS_HOST = process.env.STUNNER_HOST || '127.0.0.1';
+const HLS_HOST = process.env.HLS_HOST || '127.0.0.1';
 
 module.exports = Object.freeze({
   numWorkers: Object.keys(os.cpus()).length,
