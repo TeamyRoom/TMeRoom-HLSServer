@@ -27,10 +27,19 @@ const peers = new Map();
 const { STUNNER_USERNAME, STUNNER_PASSWORD, STUNNER_PORT, STUNNER_HOST } = process.env;
 const iceServers = Object.freeze([
     {
-        url: 'turn:' + STUNNER_HOST + ':' + STUNNER_PORT + '?transport=udp',
+        urls: [
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun3.l.google.com:19302',
+            'stun:stun4.l.google.com:19302',
+        ],
+    },
+    {
+        urls: 'turn:' + STUNNER_HOST + ':' + STUNNER_PORT,
         username: STUNNER_USERNAME,
         credential: STUNNER_PASSWORD,
-    },
+    }    
 ]);
 
 let router;
